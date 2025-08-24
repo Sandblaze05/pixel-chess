@@ -1,25 +1,42 @@
 'use client'
 
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Crown, Sword, Shield, Users, Trophy, Zap } from "lucide-react"
-import { motion } from "motion/react"
+import { motion, useInView } from "motion/react"
 
 export default function Home() {
+  const heroRef = useRef(null);
+  const isInView = useInView(heroRef, { margin: "-100px", once: false });
+
   return (
     <div className="min-h-screen bg-background">
+      <motion.header
+        initial={{ y: -100, opacity: 0 }}
+        animate={isInView ? { y: -80, opacity: 0 } : { y: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="bg-primary/10 border-b border-border backdrop-blur-2xl text-primary-foreground p-4 shadow-md fixed w-full top-0 z-50"
+      >
+        <div className="flex relative items-center mb-2 w-fit">
+          <h1 className="text-md md:text-lg font-black text-foreground font-[family-name:var(--font-montserrat)] tracking-tight">
+            PIXEL <span className="bg-gradient-to-r from-primary via-secondary to-accent text-transparent bg-clip-text">CHESS</span>
+          </h1>
+          <Sword className="inline-block absolute left-1/2 top-1/2 transform -z-10 fill-gray-500 stroke-white stroke-1 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+      </motion.header>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted/20">
+      <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted/20" ref={heroRef}>
         <div className="absolute inset-0 bg-[url('/pixelated-castle-sunset.jpg')] bg-cover bg-no-repeat bg-center opacity-30 pixel-art "></div>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background"></div>
         <div className="relative container mx-auto px-4 py-20 text-center">
           <div className="mb-8">
-            <Badge className="mb-4 bg-primary text-primary-foreground font-bold px-4 py-2 retro-shadow">
+            <Badge className="mb-4 bg-transparent/20 border-1 border-blue-400 text-primary-foreground font-bold px-4 py-2 retro-shadow">
               🏰 MEDIEVAL CHESS ADVENTURES
             </Badge>
             <h1 className="text-6xl md:text-8xl font-black text-foreground mb-6 font-[family-name:var(--font-montserrat)] tracking-tight">
-              PIXEL<span className="bg-gradient-to-r from-primary to-pink-600 text-transparent bg-clip-text">CHESS</span>
+              PIXEL<span className="bg-gradient-to-r from-primary via-secondary to-accent text-transparent bg-clip-text">CHESS</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-[family-name:var(--font-open-sans)]">
               {"Master the ancient game of kings in our retro 8-bit medieval realm"}
@@ -28,8 +45,8 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <motion.div
-              whileHover={{ y: -5, x: -5, scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -5, x: -5, scale: 1.01 }}
+              whileTap={{ y: 5, x: 5, scale: 0.98 }}
               transition={{ type: "tween", ease: "easeOut" }}
             >
               <Button
@@ -42,13 +59,14 @@ export default function Home() {
             </motion.div>
 
             <motion.div
-              whileHover={{ y: -5, x: -5, scale: 1.05 }}
+              whileHover={{ y: -5, x: -5, scale: 1.01 }}
+              whileTap={{ y: 5, x: 5, scale: 0.98 }}
               transition={{ type: "tween", ease: "easeOut" }}
             >
               <Button
                 variant="outline"
                 size="lg"
-                className="border-2 border-border hover:bg-secondary hover:text-secondary-foreground font-bold px-8 py-4 retro-shadow retro-shadow-hover text-lg bg-transparent"
+                className="border-2 border-border font-bold px-8 py-4 retro-shadow retro-shadow-hover text-lg bg-secondary"
               >
                 <Users className="mr-2 h-5 w-5" />
                 Join Tournament
@@ -73,9 +91,26 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-primary rounded-lg flex items-center justify-center retro-shadow">
-                  <Sword className="h-8 w-8 text-primary-foreground" />
-                </div>
+                <motion.div
+                  className="w-16 h-16 mx-auto mb-4 bg-primary rounded-lg flex items-center justify-center retro-shadow"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <motion.div
+                    animate={{
+                      rotate: [0, -15, 15, 0],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Sword className="h-8 w-8 fill-gray-400 stroke-1 stroke-gray-300" />
+                  </motion.div>
+                </motion.div>
                 <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
                   Knight Training
                 </CardTitle>
@@ -95,9 +130,25 @@ export default function Home() {
 
             <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-lg flex items-center justify-center retro-shadow">
-                  <Shield className="h-8 w-8 text-secondary-foreground" />
-                </div>
+                <motion.div
+                  className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-lg flex items-center justify-center retro-shadow"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 2, -2, 0]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Shield className="h-8 w-8 fill-gray-300" />
+                  </motion.div>
+                </motion.div>
                 <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
                   Castle Defense
                 </CardTitle>
@@ -117,9 +168,26 @@ export default function Home() {
 
             <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-accent rounded-lg flex items-center justify-center retro-shadow">
-                  <Trophy className="h-8 w-8 text-accent-foreground" />
-                </div>
+                <motion.div
+                  className="w-16 h-16 mx-auto mb-4 bg-accent rounded-lg flex items-center justify-center retro-shadow"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <motion.div
+                    animate={{
+                      y: [0, -4, 0],
+                      rotate: [0, -3, 3, 0],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Trophy className="h-8 w-8 fill-yellow-500" />
+                  </motion.div>
+                </motion.div>
                 <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
                   Royal Tournament
                 </CardTitle>
