@@ -1,29 +1,81 @@
 'use client'
 
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Crown, Sword, Shield, Users, Trophy, Zap } from "lucide-react"
+import { Crown, Sword, Shield, Users, Trophy, Zap, Star } from "lucide-react"
 import { motion, useInView } from "motion/react"
+import { useRouter } from "next/navigation"
 
 export default function Home() {
   const heroRef = useRef(null);
-  const isInView = useInView(heroRef, { margin: "-100px", once: false });
+  const isInView = useInView(heroRef, { margin: "0px", once: false });
+  const router = useRouter();
+
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    setParticles(Array.from({ length: 30 }, (_, i) => (
+      <motion.div
+        key={i}
+        className="absolute rounded-full"
+        style={{
+          background: `hsl(${210 + Math.random() * 60}, 70%, ${60 + Math.random() * 30}%)`,
+          width: Math.random() * 6 + 2,
+          height: Math.random() * 6 + 2,
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`
+        }}
+        animate={{
+          y: [0, -100 - Math.random() * 200, 0],
+          x: [0, Math.sin(i) * 100, 0],
+          opacity: [0, 1, 0],
+          scale: [0, 1, 0],
+        }}
+        transition={{
+          duration: 4 + Math.random() * 4,
+          repeat: Infinity,
+          delay: Math.random() * 3,
+          ease: "easeInOut"
+        }}
+      />
+    )))
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 relative">
+
+      <div className="fixed inset-0 opacity-20 z-0">
+        {particles}
+      </div>
+
       <motion.header
         initial={{ y: -100, opacity: 0 }}
         animate={isInView ? { y: -80, opacity: 0 } : { y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="bg-primary/10 border-b border-border backdrop-blur-2xl text-primary-foreground p-4 shadow-md fixed w-full top-0 z-50"
+        transition={{ duration: 0.5, type: "spring" }}
+        className="bg-slate-900/80 border-b border-cyan-500/30 backdrop-blur-xl text-white p-4 shadow-2xl shadow-cyan-500/20 fixed w-full top-0 z-50"
       >
         <div className="flex relative items-center mb-2 w-fit">
-          <h1 className="text-md md:text-lg font-black text-foreground font-[family-name:var(--font-montserrat)] tracking-tight">
-            PIXEL <span className="bg-gradient-to-r from-primary via-secondary to-accent text-transparent bg-clip-text">CHESS</span>
-          </h1>
-          <Sword className="inline-block absolute left-1/2 top-1/2 transform -z-10 fill-gray-500 stroke-white stroke-1 -translate-x-1/2 -translate-y-1/2" />
+          <motion.h1
+            className="text-md md:text-lg font-black text-white tracking-tight"
+            animate={{
+              textShadow: [
+                "0 0 20px #00ffff",
+                "0 0 25px #00ffff",
+                "0 0 20px #00ffff"
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            PIXEL <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-transparent bg-clip-text">CHESS</span>
+          </motion.h1>
+          <motion.div
+            animate={{ rotate: 10 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatType: "reverse" }}
+            className="absolute left-1/2 top-1/2 -z-20 -translate-x-1/2 -translate-y-1/2"
+          >
+            <Sword className="inline-block fill-cyan-400/20 stroke-cyan-100 stroke-2" />
+          </motion.div>
         </div>
       </motion.header>
       {/* Hero Section */}
@@ -36,7 +88,7 @@ export default function Home() {
               🏰 MEDIEVAL CHESS ADVENTURES
             </Badge>
             <h1 className="text-6xl md:text-8xl font-black text-foreground mb-6 font-[family-name:var(--font-montserrat)] tracking-tight">
-              PIXEL<span className="bg-gradient-to-r from-primary via-secondary to-accent text-transparent bg-clip-text">CHESS</span>
+              PIXEL<span className="bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">CHESS</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-[family-name:var(--font-open-sans)]">
               {"Master the ancient game of kings in our retro 8-bit medieval realm"}
@@ -48,6 +100,7 @@ export default function Home() {
               whileHover={{ y: -5, x: -5, scale: 1.01 }}
               whileTap={{ y: 5, x: 5, scale: 0.98 }}
               transition={{ type: "tween", ease: "easeOut" }}
+              onClick={() => router.push('/register')}
             >
               <Button
                 size="lg"
@@ -77,133 +130,137 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-muted/20">
+      <section className="py-20 bg-gradient-to-b from-transparent to-slate-900/50 relative">
+        <motion.div
+          className="absolute inset-0 opacity-10"
+          animate={{ opacity: [0.03, 0.05, 0.03] }}
+          transition={{ duration: 4, repeat: Infinity }}
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, cyan 25%, transparent 25%),
+              linear-gradient(-45deg, cyan 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, cyan 75%),
+              linear-gradient(-45deg, transparent 75%, cyan 75%)
+            `,
+            backgroundSize: '50px 50px',
+            backgroundPosition: '0 0, 0 25px, 25px -25px, -25px 0px'
+          }}
+        />
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4 font-[family-name:var(--font-montserrat)]">
-              Choose Your Path
+          <motion.div
+            className="text-center mb-16"
+            initial={{ y: 100, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+              <motion.span
+                animate={{
+                  backgroundPosition: ["0%", "100%"],
+                }}
+                transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
+                className="bg-gradient-to-r from-cyan-400 via-purple-500 to-cyan-400 bg-[length:200%_100%] text-transparent bg-clip-text"
+              >
+                Choose Your Path
+              </motion.span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-[family-name:var(--font-open-sans)]">
-              From novice squire to grandmaster knight, forge your legend in our pixelated kingdom
+            <p className="text-lg text-cyan-100 max-w-2xl mx-auto">
+              From novice squire to grandmaster knight, forge your legend in our <span className="text-purple-300">electrifying</span> pixelated kingdom
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader className="text-center pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {[
+              {
+                icon: Sword,
+                title: "Knight Training",
+                description: "Master chess fundamentals with our interactive neon tutorials",
+                color: "from-cyan-500 to-blue-600",
+                items: ["Electrifying piece movement guides", "Neon-lit chess puzzles", "Power-up skill challenges", "Earn lightning badges & achievements"]
+              },
+              {
+                icon: Shield,
+                title: "Castle Defense",
+                description: "Battle AI opponents in our charged medieval arenas",
+                color: "from-purple-500 to-pink-600",
+                items: ["Multiple AI intensity levels", "Glowing battlegrounds & castles", "Supercharged game modes", "Unlock plasma piece skins"]
+              },
+              {
+                icon: Trophy,
+                title: "Royal Tournament",
+                description: "Compete against players in high-voltage chess battles",
+                color: "from-yellow-500 to-orange-600",
+                items: ["Ranked lightning matches", "Seasonal storms & events", "Electric guild battles", "Dominate the power leaderboards"]
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ y: 100, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                transition={{ delay: index * 0.2, duration: 0.8 }}
+                viewport={{ once: true }}
+                whileHover={{
+                  y: -10,
+                  scale: 1.02
+                }}
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-cyan-500/30 rounded-xl backdrop-blur-md overflow-hidden"
+              >
+                {/* Glowing border effect */}
                 <motion.div
-                  className="w-16 h-16 mx-auto mb-4 bg-primary rounded-lg flex items-center justify-center retro-shadow"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <motion.div
-                    animate={{
-                      rotate: [0, -15, 15, 0],
-                      scale: [1, 1.05, 1]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <Sword className="h-8 w-8 fill-gray-400 stroke-1 stroke-gray-300" />
-                  </motion.div>
-                </motion.div>
-                <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
-                  Knight Training
-                </CardTitle>
-                <CardDescription className="text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  Master chess fundamentals with our interactive 8-bit tutorials
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  <li>• Pixel-perfect piece movement guides</li>
-                  <li>• Medieval-themed chess puzzles</li>
-                  <li>• Progressive skill challenges</li>
-                  <li>• Earn knight badges & achievements</li>
-                </ul>
-              </CardContent>
-            </Card>
+                  className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100"
+                  animate={{
+                    boxShadow: [
+                      "0 0 20px rgba(6, 182, 212, 0.3)",
+                      "0 0 40px rgba(168, 85, 247, 0.3)",
+                      "0 0 20px rgba(6, 182, 212, 0.3)"
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
 
-            <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader className="text-center pb-4">
-                <motion.div
-                  className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-lg flex items-center justify-center retro-shadow"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.1, 1],
-                      rotate: [0, 2, -2, 0]
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <Shield className="h-8 w-8 fill-gray-300" />
-                  </motion.div>
-                </motion.div>
-                <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
-                  Castle Defense
-                </CardTitle>
-                <CardDescription className="text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  Battle AI opponents in our pixelated medieval arenas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  <li>• Multiple AI difficulty levels</li>
-                  <li>• Themed battlegrounds & castles</li>
-                  <li>• Special game modes & variants</li>
-                  <li>• Unlock new chess piece skins</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card border-2 border-border retro-shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader className="text-center pb-4">
-                <motion.div
-                  className="w-16 h-16 mx-auto mb-4 bg-accent rounded-lg flex items-center justify-center retro-shadow"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <motion.div
-                    animate={{
-                      y: [0, -4, 0],
-                      rotate: [0, -3, 3, 0],
-                      scale: [1, 1.05, 1]
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <Trophy className="h-8 w-8 fill-yellow-500" />
-                  </motion.div>
-                </motion.div>
-                <CardTitle className="text-2xl font-bold text-card-foreground font-[family-name:var(--font-montserrat)]">
-                  Royal Tournament
-                </CardTitle>
-                <CardDescription className="text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  Compete against players worldwide in epic chess battles
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground font-[family-name:var(--font-open-sans)]">
-                  <li>• Ranked multiplayer matches</li>
-                  <li>• Seasonal tournaments & events</li>
-                  <li>• Guild system & team battles</li>
-                  <li>• Climb the royal leaderboards</li>
-                </ul>
-              </CardContent>
-            </Card>
+                <div className="relative p-6">
+                  <div className="text-center pb-4">
+                    <motion.div
+                      className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-r ${feature.color} rounded-lg flex items-center justify-center shadow-lg`}
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <motion.div
+                        animate={{
+                          rotate: [0, -15, 15, 0],
+                          scale: [1, 1.1, 1]
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <feature.icon className="h-8 w-8 text-white" />
+                      </motion.div>
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-2">{feature.title}</h3>
+                    <p className="text-cyan-200 text-sm">{feature.description}</p>
+                  </div>
+                  <ul className="space-y-2 text-sm text-cyan-100">
+                    {feature.items.map((item, i) => (
+                      <motion.li
+                        key={i}
+                        className="flex items-center gap-2"
+                        initial={{ x: -20, opacity: 0 }}
+                        whileInView={{ x: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        viewport={{ once: true }}
+                      >
+                        <Star className="w-3 h-3 text-yellow-400 flex-shrink-0" />
+                        {item}
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -244,9 +301,26 @@ export default function Home() {
       <section className="py-20 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-black text-foreground mb-6 font-[family-name:var(--font-montserrat)]">
-              Ready to Rule the Board?
-            </h2>
+            <motion.h2
+              className="text-4xl md:text-5xl font-black text-white mb-6"
+              initial={{ scale: 0.5, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8, type: "spring" }}
+              viewport={{ once: true }}
+            >
+              <motion.span
+                animate={{
+                  textShadow: [
+                    "0 0 30px #00ffff, 0 0 60px #00ffff",
+                    "0 0 50px #9333ea, 0 0 80px #9333ea",
+                    "0 0 30px #00ffff, 0 0 60px #00ffff"
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                Ready to Rule the Board?
+              </motion.span>
+            </motion.h2>
             <p className="text-xl text-muted-foreground mb-8 font-[family-name:var(--font-open-sans)]">
               {"Join thousands of players in the ultimate 8-bit chess experience. Your medieval adventure awaits!"}
             </p>
@@ -309,7 +383,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center text-primary-foreground/60 font-[family-name:var(--font-open-sans)]">
-            <p>© 2024 PixelChess. All rights reserved. Made with ⚔️ for chess lovers.</p>
+            <p>© 2025 PixelChess. All rights reserved.</p>
           </div>
         </div>
       </footer>
