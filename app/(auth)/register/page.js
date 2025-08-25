@@ -1,17 +1,106 @@
 'use client'
 
-import { Sword, Crown, Shield, Sparkles } from "lucide-react";
+import { Sword, Crown, Shield, Sparkles, Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [hoveredField, setHoveredField] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Clear specific validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Password validation
+  const validatePassword = (password) => {
+    const minLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return {
+      minLength,
+      hasUpperCase,
+      hasLowerCase,
+      hasNumbers,
+      hasSpecialChar,
+      isValid: minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar
+    };
+  };
+
+  // Form validation
+  useEffect(() => {
+    const errors = {};
+
+    if (formData.username && formData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters';
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (formData.password) {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        errors.password = 'Password does not meet requirements';
+      }
+    }
+
+    if (formData.confirmPassword !== '' && formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    setValidationErrors(errors);
+
+    const isValid = formData.username.length >= 3 &&
+      emailRegex.test(formData.email) &&
+      formData.password &&
+      validatePassword(formData.password).isValid &&
+      formData.password === formData.confirmPassword;
+
+    setIsFormValid(isValid);
+  }, [formData]);
+
+  const handleGoogleSignIn = () => {
+    console.log('Google Sign-in initiated');
+    signIn('google', { callbackUrl: '/dashboard' });
+  };
+
+  const handleSubmit = async () => {
+    if (isFormValid) {
+      var username = formData.username;
+      var email = formData.email;
+      var password = formData.password;
+      const res = await fetch('api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      })
+      const data = await res.json();
+      console.log('Registered:', data);
+    }
   };
 
   // Floating particles animation
@@ -82,31 +171,11 @@ export default function RegisterPage() {
         <Shield className="w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12 text-blue-400" />
       </motion.div>
 
-      <header className="bg-slate-900/80 border-b border-cyan-500/30 backdrop-blur-xl text-white p-4 shadow-2xl shadow-cyan-500/20 fixed w-full top-0 z-50">
-        <div className="flex relative items-center mb-2 w-fit">
-          <motion.h1
-            onClick={() => router.push('/')}
-            className="text-md md:text-lg font-black text-white tracking-tight cursor-pointer"
-            animate={{
-              textShadow: [
-                "0 0 20px #00ffff",
-                "0 0 25px #00ffff",
-                "0 0 20px #00ffff"
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            PIXEL <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-red-500 text-transparent bg-clip-text">CHESS</span>
-          </motion.h1>
-          <motion.div
-            animate={{ rotate: 10 }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatType: "reverse" }}
-            className="absolute left-1/2 top-1/2 -z-20 -translate-x-1/2 -translate-y-1/2"
-          >
-            <Sword className="inline-block fill-amber-400/20 stroke-amber-100 stroke-2" />
-          </motion.div>
-        </div>
-      </header>
+      <div
+        onClick={() => router.push('/')}
+        className="absolute top-6 left-6 text-amber-400 md:text-5xl z-50 flex items-center gap-1 border-2 border-amber-500/30 transition-colors cursor-pointer bg-slate-900/50 hover:bg-slate-800/50 backdrop-blur-lg px-3 py-1 rounded-md shadow-lg shadow-amber-500/20">
+        <span className="medievalsharp-bold">{'<'}</span><span className="medievalsharp-bold block md:hidden">Back</span>
+      </div>
       <div className="relative z-10 flex flex-col lg:flex-row-reverse justify-center lg:justify-between items-center p-4 lg:p-6 min-h-screen gap-8 lg:gap-0 px-4 lg:px-30">
         <motion.div
           initial={{ opacity: 0, x: 50, scale: 0.9 }}
@@ -131,7 +200,7 @@ export default function RegisterPage() {
           {/* Animated torch */}
           <motion.img
             src="/Torch_Gif.gif"
-            className="w-20 h-20 sm:w-24 sm:h-24 md:w-30 md:h-30 pointer-events-none absolute -top-12 sm:-top-14 md:-top-16 left-1/2 transform -translate-x-1/2 z-50"
+            className="w-20 h-20 sm:w-24 sm:h-24 md:w-30 md:h-30 pointer-events-none absolute -top-6 sm:-top-8 md:-top-10 left-1/2 transform -translate-x-1/2 z-50"
             animate={{
               filter: [
                 "drop-shadow(0 0 35px orange)",
@@ -162,11 +231,11 @@ export default function RegisterPage() {
             }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            Welcome Challenger!
+            <span className="press-start-2p-bold">Welcome Challenger!</span>
           </motion.h1>
 
           <motion.p
-            className="mt-2 text-xs sm:text-sm text-slate-300 mb-4 sm:mb-6 text-center px-2"
+            className="mt-2 text-xs sm:text-sm medievalsharp-regular text-slate-300 mb-4 sm:mb-6 text-center px-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -174,58 +243,118 @@ export default function RegisterPage() {
             Create your account to embark on your chess adventure
           </motion.p>
 
+          {/* Google Sign-in Button */}
+          <motion.button
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white text-gray-700 font-semibold rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-300 shadow-lg mb-4 text-sm sm:text-base"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Continue with Google
+          </motion.button>
+
+          <div className="flex items-center w-full mb-4">
+            <div className="flex-1 border-t border-slate-600"></div>
+            <span className="px-4 text-xs text-slate-400 medievalsharp-regular">OR</span>
+            <div className="flex-1 border-t border-slate-600"></div>
+          </div>
+
           <div className="w-full space-y-4">
             {[
               { id: 'username', label: 'Thy Name', type: 'text', placeholder: 'Enter your username' },
               { id: 'email', label: 'Email', type: 'email', placeholder: 'Enter your email' },
-              { id: 'password', label: 'Password', type: 'password', placeholder: 'Enter your password' }
+              { id: 'password', label: 'Password', type: showPassword ? 'text' : 'password', placeholder: 'Enter your password' },
+              { id: 'confirmPassword', label: 'Confirm Password', type: showConfirmPassword ? 'text' : 'password', placeholder: 'Confirm your password' }
             ].map((field, index) => (
               <motion.div
                 key={field.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + index * 0.1 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
               >
-                <label htmlFor={field.id} className="block text-xs sm:text-sm font-medium text-amber-200 mb-1">
+                <label htmlFor={field.id} className="block medievalsharp-regular text-xs sm:text-sm font-medium text-amber-200 mb-1">
                   {field.label}
                 </label>
-                <input
-                  type={field.type}
-                  id={field.id}
-                  name={field.id}
-                  value={formData[field.id]}
-                  onChange={handleInputChange}
-                  onFocus={() => setHoveredField(field.id)}
-                  onBlur={() => setHoveredField(null)}
-                  className={`mt-1 block w-full px-3 py-2 sm:py-3 bg-slate-800/80 border-2 rounded-md shadow-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-white transition-all duration-300 text-sm sm:text-base ${hoveredField === field.id
-                    ? 'border-amber-500/80 scale-[1.02] shadow-lg shadow-amber-500/20'
-                    : 'border-amber-500/30'
-                    }`}
-                  placeholder={field.placeholder}
-                />
+                <div className="relative">
+                  <input
+                    type={field.type}
+                    id={field.id}
+                    name={field.id}
+                    value={formData[field.id]}
+                    onChange={handleInputChange}
+                    onFocus={() => setHoveredField(field.id)}
+                    onBlur={() => setHoveredField(null)}
+                    className={`mt-1 block w-full px-3 py-2 sm:py-3 bg-slate-800/80 border-2 rounded-md shadow-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-white transition-all duration-300 text-sm sm:text-base ${hoveredField === field.id
+                      ? 'border-amber-500/80 scale-[1.02] shadow-lg shadow-amber-500/20'
+                      : validationErrors[field.id]
+                        ? 'border-red-500/80'
+                        : 'border-amber-500/30'
+                      }`}
+                    placeholder={field.placeholder}
+                  />
+
+                  {/* Password visibility toggle */}
+                  {(field.id === 'password' || field.id === 'confirmPassword') && (
+                    <button
+                      type="button"
+                      onClick={() => field.id === 'password' ? setShowPassword(!showPassword) : setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-amber-400 transition-colors duration-200"
+                    >
+                      {(field.id === 'password' ? showPassword : showConfirmPassword) ?
+                        <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+
+                {/* Error messages */}
+                {validationErrors[field.id] && (
+                  <motion.p
+                    className="mt-1 text-xs text-red-400 medievalsharp-regular"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {validationErrors[field.id]}
+                  </motion.p>
+                )}
               </motion.div>
             ))}
 
             <motion.button
-              onClick={() => console.log('Registration submitted:', formData)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-300 shadow-lg relative overflow-hidden hover:scale-105 hover:shadow-xl hover:shadow-amber-500/40 active:scale-98 text-sm sm:text-base cursor-pointer"
+              onClick={handleSubmit}
+              disabled={!isFormValid}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-4 font-bold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-300 shadow-lg relative overflow-hidden text-sm sm:text-base medievalsharp-bold ${isFormValid
+                ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:scale-105 hover:shadow-xl hover:shadow-amber-500/40 active:scale-98 cursor-pointer'
+                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                }`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              whileHover={{
+              transition={{ delay: 1.0 }}
+              whileHover={isFormValid ? {
                 scale: 1.05,
                 boxShadow: "0 10px 30px rgba(245, 158, 11, 0.4)"
-              }}
-              whileTap={{ scale: 0.98 }}
+              } : {}}
+              whileTap={isFormValid ? { scale: 0.98 } : {}}
             >
               {/* Button glow effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                animate={{ x: [-100, 300] }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-              />
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-              Register
+              {isFormValid && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: [-100, 300] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                />
+              )}
+              <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${isFormValid ? 'fill-white' : 'fill-slate-400'}`} />
+              <span>Register</span>
             </motion.button>
           </div>
         </motion.div>
