@@ -88,6 +88,14 @@ const handler = NextAuth({
             if (token) {
                 session.user.id = token.id;
                 session.user.username = token.username;
+
+                const user = await User.findById(token.id).lean(); // fetch player data
+
+                if (user) {
+                    session.user.elo = user.elo;
+                    session.user.stats = user.stats;
+                    session.user.guildId = user.guildId;
+                }
             }
             return session;
         },
@@ -99,3 +107,23 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
+
+// session structure
+// {
+//   "user": {
+//     "id": "12345",
+//     "username": "tejas",
+//     "email": "tejas@example.com",
+//     "elo": {
+//       "rapid": 1200,
+//       "blitz": 1200,
+//       "bullet": 1200
+//     },
+//     "stats": {
+//       "wins": 0,
+//       "losses": 0,
+//       "draws": 0
+//     },
+//     "guildId": null
+//   }
+// }
