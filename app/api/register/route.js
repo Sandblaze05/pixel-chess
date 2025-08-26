@@ -9,19 +9,19 @@ export async function POST (req) {
         const { username, email, password } = await req.json();
 
         if (!username || !email || !password) {
-            return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+            return NextResponse.json({ error: "FILL_FIELDS" }, { status: 400 });
         }
 
         const existingUser = await User.findOne({ $or: [{ email }, { username }] });
         if (existingUser) {
-            return NextResponse.json({ error: "User with this email or username already exists" }, { status: 400 });
+            return NextResponse.json({ error: "EXISTING_USER" }, { status: 400 });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
 
-        return NextResponse.json({ message: "User registered successfully" }, { status: 201 });
+        return NextResponse.json({ message: "SUCCESS" }, { status: 201 });
     } catch (err) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }

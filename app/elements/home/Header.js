@@ -81,12 +81,13 @@ const Header = () => {
               transition={{ type: "tween", ease: "easeOut" }}
             >
               <Button
+                onClick={() => router.push('/login')}
                 variant="outline"
                 size="lg"
                 className="border-2 border-border font-bold px-8 py-4 retro-shadow retro-shadow-hover text-lg bg-secondary"
               >
                 <Users className="mr-2 h-5 w-5" />
-                Join Tournament
+                Sign In
               </Button>
             </motion.div>
           </div>

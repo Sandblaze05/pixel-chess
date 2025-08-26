@@ -23,11 +23,6 @@ export default function RegisterPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Clear specific validation error when user starts typing
-    if (validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: '' }));
-    }
   };
 
   // Password validation
@@ -88,6 +83,12 @@ export default function RegisterPage() {
     signIn('google', { callbackUrl: '/dashboard' });
   };
 
+  const [registerError, setRegisterError] = useState(null);
+  const ERROR_DATA = {
+    "FILL_FIELDS": "Please fill in all required fields.",
+    "EXISTING_USER": "An account with this email or username already exists."
+  }
+
   const handleSubmit = async () => {
     if (isFormValid) {
       var username = formData.username;
@@ -98,7 +99,24 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password })
       })
+      if (!res.ok) {
+        const errorData = await res.json();
+        switch (errorData.error) {
+          case "FILL_FIELDS":
+          case "EXISTING_USER":
+            setRegisterError(ERROR_DATA[errorData.error]);
+            break;
+          default:
+            setRegisterError("An unexpected error occurred. Please try again.");
+            break;
+        }
+        console.log('Registration error:', errorData);
+        return;
+      }
       const data = await res.json();
+      if (data.message === "SUCCESS") {
+        router.push('/dashboard');
+      }
       console.log('Registered:', data);
     }
   };

@@ -22,12 +22,16 @@ const handler = NextAuth({
 
                 const user = await User.findOne({ email: credentials.email });
                 if (!user) {
-                    return null;
+                    throw new Error(`NO_USER`);
+                }
+
+                if (user.provider && user.provider !== "credentials") {
+                    throw new Error(`USE_GOOGLE`);
                 }
 
                 const isValid = await bcrypt.compare(credentials.password, user.password);
                 if (!isValid) {
-                    return null;
+                    throw new Error(`INVALID_PASSWORD`);
                 }
 
                 return {
@@ -47,6 +51,7 @@ const handler = NextAuth({
     },
     callbacks: {
         async signIn({ user, account, profile }) {
+            await connectDB();
             if (account.provider === "google") {
                 const existingUser = await User.findOne({ email: user.email });
 
@@ -70,19 +75,27 @@ const handler = NextAuth({
 
         async jwt({ token, user }) {
             if (user) {
-                token.id = user.id;
+                await connectDB();
+                const dbUser = await User.findOne({ email: user.email });
+                token.id = dbUser?._id.toString();
+                token.username = dbUser?.username;
             }
             return token;
         },
 
+
         async session({ session, token }) {
             if (token) {
                 session.user.id = token.id;
+                session.user.username = token.username;
             }
             return session;
         },
     },
     secret: process.env.NEXTAUTH_SECRET,
+    pages: {
+        signIn: '/login',
+    },
 });
 
 export { handler as GET, handler as POST };
