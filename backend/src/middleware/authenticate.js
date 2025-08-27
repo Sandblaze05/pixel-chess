@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { connectDB } from '../config/db';
-import User from '../models/User';
+import { connectDB } from '../config/db.js';
+import User from '../models/User.js';
 
 const authenticate = async (req, res, next) => {
     try {
@@ -22,7 +22,7 @@ const authenticate = async (req, res, next) => {
 
         await connectDB();
         const userId = payload.id || payload.sub;
-        const user = await User.findById(userId).select('-password');
+        const user = await User.findById(userId).select('-password -__v');
 
         if (!user) {
             return res.status(401).json({ message: 'User not found' });

@@ -1,6 +1,6 @@
 import express from 'express';
-import authenticate from '../middleware/authenticate';
-import { reportResult } from '../controllers/gameController';
+import authenticate from '../middleware/authenticate.js';
+import { reportResult } from '../controllers/gameController.js';
 
 const router = express.Router();
 

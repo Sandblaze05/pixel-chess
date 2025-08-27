@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const MONGO_URI = process.env.MONGO_URI;
+console.log(process.env.MONGO_URI);
 if (!MONGO_URI) {
   throw new Error("MONGO_URI is not defined in environment variables");
 }
@@ -12,7 +15,7 @@ export const connectDB = async () => {
         console.log("MongoDB is already connected");
         return;
     }
-    if (mongoose.connections.length > 0) {
+    if (mongoose.connection.readyState === 1) {
         isConnected = true;
         console.log("Using existing MongoDB connection");
         return;

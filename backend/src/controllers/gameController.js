@@ -1,4 +1,4 @@
-import User from "../models/User";
+import User from "../models/User.js";
 
 export const reportResult = async (req, res) => {
     const { result, mode } = req.body;
