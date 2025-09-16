@@ -154,34 +154,35 @@ const createGameAndNotify = async (player1, player2, mode) => {
   }
 };
 
+// Corrected startGameTimer
 const startGameTimer = (gameId) => {
   const timer = gameTimers.get(gameId);
   if (!timer) return;
 
   timer.intervalId = setInterval(() => {
+    const game = activeGames.get(gameId);
+    if (!game || game.status !== 'ongoing') {
+        clearInterval(timer.intervalId);
+        return;
+    }
+
     const now = Date.now();
     const elapsed = now - timer.lastMoveTime;
 
-    if (timer.activePlayer === 'white') {
-      timer.white = Math.max(0, timer.white - elapsed);
-    } else {
-      timer.black = Math.max(0, timer.black - elapsed);
-    }
+    // Calculate current time without saving it back to the timer object
+    const whiteTime = timer.activePlayer === 'white' ? Math.max(0, timer.white - elapsed) : timer.white;
+    const blackTime = timer.activePlayer === 'black' ? Math.max(0, timer.black - elapsed) : timer.black;
 
-    timer.lastMoveTime = now;
-
-    // Emit time update
     const gameRoom = `game-${gameId}`;
     io.to(gameRoom).emit("timeUpdate", {
-      white: timer.white,
-      black: timer.black
+      white: whiteTime,
+      black: blackTime
     });
 
-    // Check for timeout
-    if (timer.white <= 0 || timer.black <= 0) {
-      handleTimeout(gameId, timer.white <= 0 ? 'white' : 'black');
+    if (whiteTime <= 0 || blackTime <= 0) {
+      handleTimeout(gameId, whiteTime <= 0 ? 'white' : 'black');
     }
-  }, 100); // Update every 100ms for smooth timer
+  }, 1000); // Updating every second is sufficient for broadcasting
 };
 
 const handleTimeout = async (gameId, timedOutColor) => {
@@ -309,9 +310,11 @@ io.on('connection', (socket) => {
         const elapsed = now - timer.lastMoveTime;
 
         if (timer.activePlayer === 'white') {
-          timer.white = Math.max(0, timer.white - elapsed + timer.increment);
+          timer.white = Math.max(0, timer.white - elapsed);
+          timer.white += timer.increment;
         } else {
-          timer.black = Math.max(0, timer.black - elapsed + timer.increment);
+          timer.black = Math.max(0, timer.black - elapsed);
+          timer.white += timer.increment;
         }
 
         timer.activePlayer = timer.activePlayer === 'white' ? 'black' : 'white';

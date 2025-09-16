@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sword, Shield, Trophy, Crown, Users, Settings, BookOpen, LogOut, Menu, X, Clock, User, MessageCircle, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
+import ChessBoard from '@/components/ChessBoard';
 
 class ChessGameManager {
   constructor() {
@@ -24,7 +25,7 @@ class ChessGameManager {
   }
 
   connect(email) {
-    this.socket = io('http://localhost:5000/', { 
+    this.socket = io('http://localhost:5000/', {
       auth: { email },
       transports: ['websocket']
     });
@@ -56,29 +57,49 @@ class ChessGameManager {
     });
 
     this.socket.on('gameStart', (gameData) => {
+      console.log('Game started received:', gameData);
       this.currentGame = gameData.gameId;
+
+      // Determine player color based on user ID
+      const isWhitePlayer = gameData.white.id === this.userInfo?.userId;
+
       this.gameState = {
         ...this.gameState,
+        gameId: gameData.gameId,
         fen: gameData.fen,
-        playerColor: gameData.white.id === this.userInfo.userId ? 'white' : 'black',
+        playerColor: isWhitePlayer ? 'white' : 'black',
         timeRemaining: {
           white: gameData.white.time,
           black: gameData.black.time
         },
         gameStatus: 'playing',
-        opponent: gameData.white.id === this.userInfo.userId ? gameData.black : gameData.white
+        opponent: isWhitePlayer ? gameData.black : gameData.white,
+        moves: [],
+        turn: gameData.currentTurn, // Chess always starts with white
+        isYourTurn: isWhitePlayer // White goes first
       };
+
+      console.log('Updated game state:', this.gameState);
       this.callbacks.onGameStart?.(this.gameState);
     });
 
     this.socket.on('moveMade', (moveData) => {
-      this.gameState.fen = moveData.fen;
-      this.gameState.moves.push(moveData.move);
-      this.gameState.turn = moveData.turn;
-      if (moveData.timeRemaining) {
-        this.gameState.timeRemaining = moveData.timeRemaining;
-      }
-      this.callbacks.onMoveMade?.(moveData);
+      console.log('Move made received:', moveData);
+      
+      // Best Practice: Avoid direct mutation by creating a new state object
+      const updatedGameState = {
+        ...this.gameState,
+        fen: moveData.fen,
+        moves: [...this.gameState.moves, moveData.move],
+        turn: moveData.turn,
+        isYourTurn: moveData.turn === this.gameState.playerColor[0], // 'w' or 'b'
+        timeRemaining: moveData.timeRemaining || this.gameState.timeRemaining,
+      };
+
+      this.gameState = updatedGameState; // Update the manager's state
+      
+      // Pass the entire updated state object to the React component
+      this.callbacks.onMoveMade?.(this.gameState);
     });
 
     this.socket.on('timeUpdate', (timeData) => {
@@ -108,12 +129,14 @@ class ChessGameManager {
     this.socket?.emit('leaveQueue', { mode });
   }
 
-  makeMove(move) {
-    if (this.currentGame) {
-      this.socket?.emit('makeMove', {
-        gameId: this.currentGame,
-        move
+  makeMove(gameId, move) {
+    if (gameId && this.socket) {
+      this.socket.emit('makeMove', {
+        gameId: gameId,
+        move: move
       });
+    } else {
+        console.error("Socket not connected or gameId missing, cannot make move.");
     }
   }
 
@@ -172,16 +195,25 @@ const Dashboard = () => {
         }));
       },
       onGameStart: (state) => {
+        console.log('Dashboard: Game started with state:', state);
         setGameState(prev => ({
           ...prev,
           status: 'playing',
           currentGame: state,
           opponent: state.opponent,
-          timeRemaining: state.timeRemaining
+          timeRemaining: state.timeRemaining,
+          isYourTurn: state.turn === state.playerColor
         }));
       },
-      onMoveMade: (moveData) => {
-        console.log('Move made:', moveData);
+      onMoveMade: (newCurrentGameState) => {
+        console.log('Dashboard: Move made with new state:', newCurrentGameState);
+        setGameState(prev => ({
+          ...prev,
+          // Simply replace the old game state with the new one from the manager
+          currentGame: newCurrentGameState,
+          // You can also sync top-level state if needed, though it's best to rely on currentGame
+          timeRemaining: newCurrentGameState.timeRemaining 
+        }));
       },
       onTimeUpdate: (timeData) => {
         setGameState(prev => ({
@@ -420,60 +452,45 @@ const Dashboard = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl border border-cyan-500/30 backdrop-blur-sm"
+              className="mb-6"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-white">Game in Progress</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => gameManager.offerDraw()}
-                    className="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded border border-yellow-500/30 text-sm"
-                  >
-                    Offer Draw
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to resign?')) {
-                        gameManager.resign();
-                      }
-                    }}
-                    className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded border border-red-500/30 text-sm"
-                  >
-                    Resign
-                  </button>
+              {/* Game Controls Header */}
+              <div className="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl border border-cyan-500/30 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-white">Game in Progress</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => gameManager.offerDraw()}
+                      className="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded border border-yellow-500/30 text-sm"
+                    >
+                      Offer Draw
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Are you sure you want to resign?')) {
+                          gameManager.resign();
+                        }
+                      }}
+                      className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded border border-red-500/30 text-sm"
+                    >
+                      Resign
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Opponent Info */}
-              {gameState.opponent && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold">{gameState.opponent.username}</div>
-                      <div className="text-cyan-200 text-sm">Rating: {gameState.opponent.rating}</div>
-                    </div>
-                  </div>
-
-                  {/* Time Display */}
-                  <div className="flex gap-4">
-                    <div className="text-center">
-                      <div className="text-xs text-cyan-300">White</div>
-                      <div className="text-white font-mono">
-                        {formatTime(gameState.timeRemaining.white)}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-cyan-300">Black</div>
-                      <div className="text-white font-mono">
-                        {formatTime(gameState.timeRemaining.black)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Chess Board */}
+              <div className="flex justify-center">
+                <ChessBoard
+                  gameState={gameState.currentGame}
+                  onMoveMade={(move) => {
+                    console.log('Dashboard: Making move:', move);
+                    gameManager.makeMove(gameState.currentGame.gameId, move);
+                  }}
+                  playerColor={gameState.currentGame?.playerColor || 'white'}
+                  isPlayerTurn={gameState.currentGame?.isYourTurn || false}
+                />
+              </div>
             </motion.div>
           )}
 
