@@ -192,23 +192,37 @@ async function updatePlayerRatings(game, winner) {
 
 // Additional helper function for abandonment/timeout
 export const endGameByTimeout = async (gameId, timedOutPlayerId) => {
-    const game = await Game.findById(gameId);
-    if (!game || game.status !== "ongoing") return null;
+    try {
+        const game = await Game.findById(gameId);
+        if (!game || game.status !== "ongoing") return null;
 
-    game.status = "finished";
-    game.endedAt = new Date();
-    game.winner = timedOutPlayerId.toString() === game.whitePlayer.toString()
-        ? game.blackPlayer
-        : game.whitePlayer;
+        // Ensure timedOutPlayerId is provided and valid
+        if (!timedOutPlayerId) {
+            console.error('endGameByTimeout: timedOutPlayerId is required');
+            return null;
+        }
 
-    await updatePlayerRatings(game, game.winner);
-    await game.save();
+        game.status = "finished";
+        game.endedAt = new Date();
 
-    return {
-        status: "finished",
-        winner: game.winner,
-        reason: "timeout"
-    };
+        // Determine winner (opposite of timed out player)
+        const timedOutPlayerStr = timedOutPlayerId.toString();
+        game.winner = timedOutPlayerStr === game.whitePlayer.toString()
+            ? game.blackPlayer
+            : game.whitePlayer;
+
+        await updatePlayerRatings(game, game.winner);
+        await game.save();
+
+        return {
+            status: "finished",
+            winner: game.winner,
+            reason: "timeout"
+        };
+    } catch (error) {
+        console.error('Error in endGameByTimeout:', error);
+        return null;
+    }
 };
 
 // Function to get game state for a specific user

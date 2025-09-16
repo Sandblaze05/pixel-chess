@@ -79,6 +79,7 @@ const handler = NextAuth({
                 const dbUser = await User.findOne({ email: user.email });
                 token.id = dbUser?._id.toString();
                 token.username = dbUser?.username;
+                token.email = dbUser?.email;
             }
             return token;
         },
@@ -88,6 +89,7 @@ const handler = NextAuth({
             if (token) {
                 session.user.id = token.id;
                 session.user.username = token.username;
+                session.user.email = token.email;
 
                 const user = await User.findById(token.id).lean(); // fetch player data
 

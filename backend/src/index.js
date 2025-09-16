@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 const httpserver = createServer(app);
 const io = new Server(httpserver, {
-  cors: { origin: '*' },
+  cors: { origin: 'http://localhost:3000' },
 });
 
 // Game state management
@@ -213,22 +213,23 @@ const handleTimeout = async (gameId, timedOutColor) => {
 
 io.use(async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("Authentication required"));
+    const email = socket.handshake.auth.email; // client must send this
+    // console.log(email);
+    if (!email) return next(new Error("Authentication required"));
 
-    const payload = jwt.verify(token, process.env.NEXTAUTH_SECRET);
-    const userId = payload.id || payload.sub;
-
-    const user = await User.findById(userId).select('username image elo stats');
+    const user = await User.findOne({ email });
     if (!user) return next(new Error("User not found"));
 
-    socket.userId = userId;
+    socket.userId = user._id.toString(); // store ObjectId
     socket.user = user;
+
     next();
   } catch (err) {
+    console.error("Socket auth error:", err);
     next(new Error("Authentication failed"));
   }
 });
+
 
 io.on('connection', (socket) => {
   const userId = socket.userId;

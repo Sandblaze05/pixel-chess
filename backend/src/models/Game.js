@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 
 const gameSchema = new mongoose.Schema({
-  players: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  whitePlayer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  blackPlayer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   fen: { type: String, required: true },
   moves: [{ type: String }],
   status: { type: String, enum: ["ongoing", "finished"], default: "ongoing" },
