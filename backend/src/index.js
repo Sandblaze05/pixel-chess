@@ -47,7 +47,10 @@ const TIME_CONTROLS = {
 };
 
 const findMatch = (queue, newPlayer, range = 100) => {
-  return queue.find(p => Math.abs(p.rating - newPlayer.rating) <= range);
+  return queue.find(p =>
+    p.socketId !== newPlayer.socketId &&  // how could i froget this bruh
+    Math.abs(p.rating - newPlayer.rating) <= range
+  );
 }
 
 const searchIntervals = new Map();
