@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sword, Shield, Trophy, Crown, Users, Settings, BookOpen, LogOut, Menu, X, Clock, User, MessageCircle, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
-import ChessBoard from '@/components/ChessBoard';
+import ChessBoard from '@/components/Chessboard';
 
 class ChessGameManager {
   constructor() {
@@ -86,7 +86,6 @@ class ChessGameManager {
     this.socket.on('moveMade', (moveData) => {
       console.log('Move made received:', moveData);
       
-      // Best Practice: Avoid direct mutation by creating a new state object
       const updatedGameState = {
         ...this.gameState,
         fen: moveData.fen,
@@ -209,9 +208,7 @@ const Dashboard = () => {
         console.log('Dashboard: Move made with new state:', newCurrentGameState);
         setGameState(prev => ({
           ...prev,
-          // Simply replace the old game state with the new one from the manager
           currentGame: newCurrentGameState,
-          // You can also sync top-level state if needed, though it's best to rely on currentGame
           timeRemaining: newCurrentGameState.timeRemaining 
         }));
       },
@@ -360,7 +357,6 @@ const Dashboard = () => {
                       <span className='text-xs text-cyan-400'>
                         ELO: {userInfo?.elo?.rapid || 1200}
                       </span>
-                      <span className='text-xs text-purple-400'>⚡ Level 1</span>
                     </div>
                   </div>
                 </div>
