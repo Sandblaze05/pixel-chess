@@ -38,12 +38,15 @@ jobs:
         with:
           project_id: ${{ secrets.GCLOUD_PROJECT }}
 
-      # Deploy to Cloud Run
+      # Deploy to Cloud Run using the dedicated action
       - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy pixel-chess-backend \
-            --image=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/pixel-chess-backend:latest \
-            --region=asia-south1 \
-            --platform=managed \
-            --allow-unauthenticated \
-            --set-env-vars=MONGO_URI=${{ secrets.MONGO_URI }},NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: pixel-chess-backend
+          region: asia-south1
+          image: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/pixel-chess-backend:latest
+          platform: managed
+          allow_unauthenticated: true
+          env_vars: |
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
