@@ -8,9 +8,9 @@ const UserSchema = new mongoose.Schema({
   image: { type: String },
 
   elo: { 
-    rapid: { type: Number, default: 1200 },
-    blitz: { type: Number, default: 1200 },
-    bullet: { type: Number, default: 1200 },
+    rapid: { type: Number, default: 400 },
+    blitz: { type: Number, default: 400 },
+    bullet: { type: Number, default: 400 },
    },
 
    stats: {

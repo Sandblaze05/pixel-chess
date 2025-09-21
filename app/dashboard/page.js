@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 import ChessBoard from '@/components/Chessboard';
 
+const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+
 class ChessGameManager {
   constructor() {
     this.socket = null;
@@ -25,7 +27,7 @@ class ChessGameManager {
   }
 
   connect(email) {
-    this.socket = io('http://localhost:5000/', {
+    this.socket = io(`${SERVER_URL}`, {
       auth: { email },
       transports: ['websocket']
     });
