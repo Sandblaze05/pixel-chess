@@ -1,7 +1,12 @@
-'use client';
-
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider } from "./client-wrapper";
+
+export const metadata = {
+  title: {
+    default: 'Pixel Chess',
+    template: '%s | Pixel Chess'
+  }
+}
 
 export default function RootLayout({ children }) {
 

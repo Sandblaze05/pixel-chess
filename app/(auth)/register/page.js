@@ -418,6 +418,24 @@ export default function RegisterPage() {
 
       {/* Subtle grid pattern overlay */}
       <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='white' fill-opacity='1'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/svg%3E')] pointer-events-none" />
+      {/* Error prompt */}
+      {registerError &&
+        <div className="absolute z-100 flex justify-center items-center inset-0 bg-black/10 backdrop-blur-sm transition-all">
+          <div className="flex flex-col relative justify-around items-center w-[45%] h-[35%] bg-slate-900 border-1 [box-shadow:4px_4px_1px_orange] border-amber-500/80 text-amber-400 p-4">
+            <div className="text-xl  text-center press-start-2p-bold">There seems to be a problem challenger</div>
+            <div className="medievalsharp-regular text-lg text-white text-center">{registerError}</div>
+            <div className="relative w-3/4 h-11 ">
+              <motion.button
+                className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-500 text-white medievalsharp-regular rounded-sm"
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.5, ease: 'linear' }}
+                onClick={() => router.push('/login')}
+              >Login</motion.button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   );
 }

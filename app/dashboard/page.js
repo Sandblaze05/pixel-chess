@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { Sword, Shield, Trophy, Crown, Users, Settings, BookOpen, LogOut, Menu, X, Clock, User, MessageCircle, Flag } from 'lucide-react';
@@ -390,7 +391,7 @@ const Dashboard = () => {
               <Settings className='w-4 h-4' />
               <span className='text-sm font-medium'>Settings</span>
             </button>
-            <button className='w-full p-3 flex items-center gap-3 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors'>
+            <button onClick={() => signOut()} className='w-full p-3 flex items-center gap-3 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors'>
               <LogOut className='w-4 h-4' />
               <span className='text-sm font-medium'>Logout</span>
             </button>
