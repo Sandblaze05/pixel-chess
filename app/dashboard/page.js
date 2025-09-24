@@ -88,7 +88,7 @@ class ChessGameManager {
 
     this.socket.on('moveMade', (moveData) => {
       console.log('Move made received:', moveData);
-      
+
       const updatedGameState = {
         ...this.gameState,
         fen: moveData.fen,
@@ -99,7 +99,7 @@ class ChessGameManager {
       };
 
       this.gameState = updatedGameState; // Update the manager's state
-      
+
       // Pass the entire updated state object to the React component
       this.callbacks.onMoveMade?.(this.gameState);
     });
@@ -141,7 +141,7 @@ class ChessGameManager {
     this.socket.on('gameJoined', (gameData) => {
       // Similar setup to gameStart event
       this.currentGame = gameData.gameId;
-      
+
       this.gameState = {
         ...this.gameState,
         gameId: gameData.gameId,
@@ -174,7 +174,7 @@ class ChessGameManager {
         move: move
       });
     } else {
-        console.error("Socket not connected or gameId missing, cannot make move.");
+      console.error("Socket not connected or gameId missing, cannot make move.");
     }
   }
 
@@ -269,14 +269,16 @@ const Dashboard = () => {
           timeRemaining: state.timeRemaining,
           isYourTurn: state.turn === state.playerColor
         }));
+        setError('');
       },
       onMoveMade: (newCurrentGameState) => {
         console.log('Dashboard: Move made with new state:', newCurrentGameState);
         setGameState(prev => ({
           ...prev,
           currentGame: newCurrentGameState,
-          timeRemaining: newCurrentGameState.timeRemaining 
+          timeRemaining: newCurrentGameState.timeRemaining
         }));
+        setError('');
       },
       onTimeUpdate: (timeData) => {
         setGameState(prev => ({
@@ -287,10 +289,12 @@ const Dashboard = () => {
       onGameOver: (result) => {
         setGameState(prev => ({
           ...prev,
-          status: 'finished'
+          status: 'finished',
+          activeGames: prev.activeGames.filter(g => g._id !== prev.currentGame.gameId),
         }));
         setGameOverData(result);
         setShowGameOverModal(true);
+        setError('');
       },
       onError: (message) => {
         setError(message);
@@ -334,6 +338,7 @@ const Dashboard = () => {
   }, [session?.user?.email]);
 
   const handleJoinQueue = (mode) => {
+    setError('');
     if (gameState.status === 'queuing') {
       gameManager.leaveQueue();
     } else {
@@ -343,6 +348,7 @@ const Dashboard = () => {
   };
 
   const handleLeaveQueue = () => {
+    setError('');
     gameManager.leaveQueue();
   };
 
@@ -388,8 +394,8 @@ const Dashboard = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-slate-900 border border-cyan-500/30 rounded-xl p-6 max-w-md w-full mx-4"
             >
-              <h3 className="text-xl font-bold text-white mb-4">Draw Offer</h3>
-              <p className="text-cyan-200 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4 press-start-2p-regular">Draw Offer</h3>
+              <p className="text-cyan-200 mb-6 text-xs press-start-2p-italic">
                 Your opponent has offered a draw. Do you accept?
               </p>
               <div className="flex gap-3 justify-end">
@@ -430,16 +436,16 @@ const Dashboard = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-red-500/30 rounded-xl p-6 max-w-md w-full mx-4"
+              className="bg-slate-900 border border-cyan-500/30 rounded-xl p-6 max-w-md w-full mx-4"
             >
-              <h3 className="text-xl font-bold text-white mb-4">Confirm Resignation</h3>
-              <p className="text-red-200 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4 press-start-2p-regular">Confirm Resignation</h3>
+              <p className="text-cyan-200 mb-6 text-xs press-start-2p-italic">
                 Are you sure you want to resign? This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowResignModal(false)}
-                  className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-white rounded-lg border border-slate-600/30"
+                  className="px-4 py-2 bg-slate-500/20 hover:bg-slate-500/30 text-slate-300 rounded-lg border border-slate-500/30"
                 >
                   Cancel
                 </button>
@@ -473,32 +479,32 @@ const Dashboard = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-slate-900 border border-cyan-500/30 rounded-xl p-6 max-w-md w-full mx-4"
             >
-              <h3 className="text-2xl font-bold text-white mb-4">
+              <h3 className="text-xl font-bold text-white mb-4 press-start-2p-regular">
                 Game Over
               </h3>
-              <div className="mb-6">
+              <div className="mb-6 text-xs press-start-2p-italic">
                 {gameOverData.winner ? (
                   <div>
-                    <p className="text-lg text-cyan-200 mb-2">
-                      Winner: {gameOverData.winner === userInfo?.userId ? 
-                        userInfo.username : 
+                    <p className="text-cyan-200 mb-2">
+                      Winner: {gameOverData.winner === userInfo?.userId ?
+                        userInfo.username :
                         gameState.currentGame?.opponent?.username}
                     </p>
                     <p className="text-cyan-400">
                       By {gameOverData.reason === 'checkmate' ? 'checkmate' :
-                          gameOverData.reason === 'timeout' ? 'timeout' :
+                        gameOverData.reason === 'timeout' ? 'timeout' :
                           gameOverData.reason === 'resignation' ? 'resignation' : gameOverData.reason}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-lg text-cyan-200">Game drawn by agreement</p>
+                  <p className="text-cyan-200">Game drawn by agreement</p>
                 )}
               </div>
               <div className="flex justify-end">
                 <button
                   onClick={() => {
                     setShowGameOverModal(false);
-                    setGameState(prev => ({ ...prev, status: 'idle' }));
+                    setGameState(prev => ({ ...prev, status: 'idle', currentGame: null, opponent: null, messages: [] }));
                   }}
                   className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/30"
                 >
@@ -708,14 +714,14 @@ const Dashboard = () => {
                 {/* Chess Board */}
                 <div className="flex-1 flex justify-center">
                   <ChessBoard
-                  gameState={gameState.currentGame}
-                  onMoveMade={(move) => {
-                    console.log('Dashboard: Making move:', move);
-                    gameManager.makeMove(gameState.currentGame.gameId, move);
-                  }}
-                  playerColor={gameState.currentGame?.playerColor || 'white'}
-                  isPlayerTurn={gameState.currentGame?.isYourTurn || false}
-                />
+                    gameState={gameState.currentGame}
+                    onMoveMade={(move) => {
+                      console.log('Dashboard: Making move:', move);
+                      gameManager.makeMove(gameState.currentGame.gameId, move);
+                    }}
+                    playerColor={gameState.currentGame?.playerColor || 'white'}
+                    isPlayerTurn={gameState.currentGame?.isYourTurn || false}
+                  />
                 </div>
 
                 {/* Game Chat & Info */}
@@ -741,7 +747,7 @@ const Dashboard = () => {
                   </div>
 
                   {/* Chat Box */}
-                  <div className="flex-1 flex flex-col p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 backdrop-blur-sm min-h-[300px]">
+                  <div className="flex-1 hidden sm:flex flex-col p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 backdrop-blur-sm min-h-[300px]">
                     <div className="flex-1 overflow-y-auto mb-4 space-y-2">
                       {gameState.messages.map((msg, i) => (
                         <div
@@ -787,85 +793,97 @@ const Dashboard = () => {
             </motion.div>
           )}
 
-          {/* Active Games Section */}
-          {gameState.status === 'idle' && gameState.activeGames.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <h2 className="text-2xl font-bold text-white mb-4">Active Games</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {gameState.activeGames.map((game) => (
-                  <motion.div
-                    key={game._id}
-                    className="p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all backdrop-blur-sm"
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">
-                            {game.whitePlayer.username === userInfo?.username 
-                              ? game.blackPlayer.username 
-                              : game.whitePlayer.username}
-                          </p>
-                          <p className="text-xs text-cyan-400">{game.mode}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => gameManager.joinGame(game._id)}
-                        className="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded border border-cyan-500/30 text-sm flex items-center gap-2"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        Resume
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
           {/* Welcome Message */}
           {gameState.status === 'idle' && (
-
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-12"
             >
-              <h1 className="text-4xl font-bold text-white mb-4">
+              <h1 className="sm:text-4xl text-xl font-bold text-white mb-4 press-start-2p-regular sm:press-start-2p-bold">
                 Welcome to Pixel Chess
               </h1>
-              <p className="text-cyan-200 text-lg mb-8">
+              <p className="text-cyan-200 text-xs mb-8 press-start-2p-regular">
                 Choose a game mode from the sidebar to start playing
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {[
-                  { mode: 'bullet', time: '1+0', desc: 'Lightning fast games' },
-                  { mode: 'blitz', time: '5+0', desc: 'Quick tactical battles' },
-                  { mode: 'rapid', time: '10+0', desc: 'Thoughtful strategic play' }
-                ].map((gameMode) => (
+                  { mode: 'bullet', time: '1+0', desc: 'Lightning fast games', icon: Clock },
+                  { mode: 'blitz', time: '5+0', desc: 'Quick tactical battles', icon: Sword },
+                  { mode: 'rapid', time: '10+0', desc: 'Thoughtful strategic play', icon: Shield }
+                ].map((action, index) => (
                   <motion.button
-                    key={gameMode.mode}
-                    onClick={() => handleJoinQueue(gameMode.mode)}
-                    className="p-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all backdrop-blur-sm"
-                    whileHover={{ scale: 1.05 }}
+                    key={action.mode}
+                    onClick={() => handleJoinQueue(action.mode)}
+                    className="group p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border-4 border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 shadow-2xl relative overflow-hidden backdrop-blur-sm"
+                    whileHover={{ scale: 1.05, y: -5 }}
                     whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.2 }}
                   >
-                    <Clock className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
-                    <h3 className="text-white font-bold text-lg capitalize mb-2">
-                      {gameMode.mode}
-                    </h3>
-                    <p className="text-cyan-300 text-sm mb-2">{gameMode.time}</p>
-                    <p className="text-cyan-200 text-xs">{gameMode.desc}</p>
+                    {/* Decorative corners */}
+                    <div className="absolute top-2 left-2 w-4 h-4 bg-cyan-500/30 rotate-45 border border-cyan-400/30"></div>
+                    <div className="absolute top-2 right-2 w-4 h-4 bg-cyan-500/30 rotate-45 border border-cyan-400/30"></div>
+                    <div className="absolute bottom-2 left-2 w-4 h-4 bg-cyan-500/30 rotate-45 border border-cyan-400/30"></div>
+                    <div className="absolute bottom-2 right-2 w-4 h-4 bg-cyan-500/30 rotate-45 border border-cyan-400/30"></div>
+
+                    <div className="relative z-10">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center border-4 border-cyan-400/30 group-hover:from-cyan-400/30 group-hover:to-purple-400/30 transition-all duration-300">
+                        <action.icon className="w-8 h-8 text-cyan-300" />
+                      </div>
+                      <h3 className="text-white font-bold text-xl mb-2 group-hover:text-cyan-100 transition-colors">
+                        {action.mode.charAt(0).toUpperCase() + action.mode.slice(1)}
+                      </h3>
+                      <p className="text-cyan-300 text-lg mb-2 font-medium">{action.time}</p>
+                      <p className="text-cyan-200 text-sm">{action.desc}</p>
+                    </div>
                   </motion.button>
                 ))}
               </div>
+
+              {/* Active Games Section */}
+              {gameState.activeGames.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-16"
+                >
+                  <h2 className="text-2xl font-bold text-white mb-4 press-start-2p-regular">Resume Active Games</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {gameState.activeGames.map((game) => (
+                      <motion.div
+                        key={game._id}
+                        className="p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all backdrop-blur-sm"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">
+                                {game.whitePlayer.username === userInfo?.username
+                                  ? game.blackPlayer.username
+                                  : game.whitePlayer.username}
+                              </p>
+                              <p className="text-xs text-cyan-400">{game.mode}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => gameManager.joinGame(game._id)}
+                            className="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded border border-cyan-500/30 text-sm flex items-center gap-2"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Resume
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </div>
