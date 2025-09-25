@@ -8,7 +8,7 @@ const ChessBoard = ({
   gameState,
   onMoveMade,
   playerColor = "white",
-  isPlayerTurn = true,
+  isPlayerTurn = true, // We'll calculate this internally instead
   boardTheme = "blue",
   showCoordinates = true,
   enableSounds = true,
@@ -22,35 +22,155 @@ const ChessBoard = ({
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [promotionMove, setPromotionMove] = useState(null);
   const [showPromotionDialog, setShowPromotionDialog] = useState(false);
+  const lastSyncedFenRef = useRef('');
+  const [awaitingServerResponse, setAwaitingServerResponse] = useState(false);
 
-  // Initialize game from gameState
+  // Calculate if it's actually the player's turn based on the position
+  const isActuallyPlayerTurn = () => {
+    if (awaitingServerResponse) return false; // Block moves while waiting for server
+    
+    const currentTurn = gameRef.current.turn(); // 'w' or 'b'
+    const playerTurn = playerColor === 'white' ? 'w' : 'b';
+    
+    const result = currentTurn === playerTurn;
+    console.log('Turn check:', {
+      currentTurn,
+      playerColor,
+      playerTurn,
+      isPlayerTurn: result,
+      awaitingServer: awaitingServerResponse,
+      externalIsPlayerTurn: isPlayerTurn // for comparison
+    });
+    
+    return result;
+  };
+
+  // Force sync Chess.js with external state
+  const forceSync = (externalFen) => {
+    if (!externalFen || externalFen === lastSyncedFenRef.current) {
+      return false;
+    }
+
+    console.log('Force syncing to FEN:', externalFen);
+    
+    try {
+      const newGame = new Chess(externalFen);
+      gameRef.current = newGame;
+      lastSyncedFenRef.current = externalFen;
+      
+      // Clear server wait when we get a new position
+      setAwaitingServerResponse(false);
+      
+      console.log('Sync successful:', {
+        fen: externalFen,
+        turn: newGame.turn(),
+        moveCount: newGame.moveNumber(),
+        isNowPlayerTurn: isActuallyPlayerTurn()
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to sync with FEN:", error);
+      return false;
+    }
+  };
+
+  // Get all legal moves
+  const getAllLegalMoves = () => {
+    try {
+      const moves = gameRef.current.moves({ verbose: true });
+      const dests = new Map();
+      
+      moves.forEach(move => {
+        if (!dests.has(move.from)) {
+          dests.set(move.from, []);
+        }
+        dests.get(move.from).push(move.to);
+      });
+      
+      return dests;
+    } catch (error) {
+      console.error('Error getting legal moves:', error);
+      return new Map();
+    }
+  };
+
+  // Initialize and sync with external game state
   useEffect(() => {
+    console.log('=== Game State Update ===', {
+      newFen: gameState?.fen,
+      lastSynced: lastSyncedFenRef.current,
+      currentFen: gameRef.current?.fen(),
+      moveCount: gameState?.moves?.length,
+      externalIsPlayerTurn: isPlayerTurn
+    });
+    
     if (gameState?.fen) {
-      try {
-        gameRef.current = new Chess(gameState.fen);
-      } catch (error) {
-        console.error("Invalid FEN:", error);
-        gameRef.current = new Chess();
+      const synced = forceSync(gameState.fen);
+      if (synced) {
+        // Force a board update when we sync a new position
+        updateChessground();
       }
-    } else {
-      gameRef.current = new Chess();
     }
   }, [gameState?.fen]);
+
+  // Update Chessground display
+  const updateChessground = () => {
+    if (!chessgroundRef.current || !gameRef.current) return;
+
+    const currentGame = gameRef.current;
+    const currentFen = currentGame.fen();
+    const playerCanMove = isActuallyPlayerTurn();
+    
+    console.log('Updating Chessground:', {
+      fen: currentFen,
+      turn: currentGame.turn(),
+      playerCanMove: playerCanMove ? playerColor : 'none',
+      awaitingServer: awaitingServerResponse
+    });
+
+    chessgroundRef.current.set({
+      fen: currentFen,
+      turnColor: currentGame.turn() === 'w' ? 'white' : 'black',
+      check: currentGame.inCheck(),
+      movable: {
+        color: playerCanMove ? playerColor : undefined,
+        dests: playerCanMove ? getAllLegalMoves() : new Map(),
+      },
+    });
+
+    // Show last move highlight
+    if (gameState?.moves && gameState.moves.length > 0) {
+      const history = currentGame.history({ verbose: true });
+      if (history.length > 0) {
+        const lastMove = history[history.length - 1];
+        chessgroundRef.current.set({
+          lastMove: [lastMove.from, lastMove.to],
+        });
+      }
+    }
+
+    // Clear selection when not player's turn
+    if (!playerCanMove) {
+      setSelectedSquare(null);
+    }
+  };
 
   // Initialize Chessground
   useEffect(() => {
     if (!boardRef.current || chessgroundRef.current) return;
 
+    console.log('Initializing Chessground');
+
     const config = {
       fen: gameRef.current.fen(),
       orientation: playerColor,
       turnColor: gameRef.current.turn() === 'w' ? 'white' : 'black',
-      check: gameRef.current.inCheck(),
       coordinates: showCoordinates,
       movable: {
         free: false,
-        color: isPlayerTurn ? playerColor : undefined,
-        dests: getValidMoves(),
+        color: isActuallyPlayerTurn() ? playerColor : undefined,
+        dests: getAllLegalMoves(),
         events: {
           after: handleMove,
         },
@@ -81,7 +201,7 @@ const ChessBoard = ({
       },
       animation: {
         enabled: true,
-        duration: 200,
+        duration: 150,
       },
     };
 
@@ -95,76 +215,42 @@ const ChessBoard = ({
     };
   }, []);
 
-  // Update board when game state changes
+  // Update board when relevant props change
   useEffect(() => {
-    if (!chessgroundRef.current) return;
+    updateChessground();
+  }, [gameState, playerColor, awaitingServerResponse]);
 
-    const game = gameRef.current;
-    
-    chessgroundRef.current.set({
-      fen: game.fen(),
-      turnColor: game.turn() === 'w' ? 'white' : 'black',
-      check: game.inCheck(),
-      movable: {
-        color: isPlayerTurn ? playerColor : undefined,
-        dests: getValidMoves(),
-      },
-    });
-
-    // Highlight last move
-    if (gameState?.moves && gameState.moves.length > 0) {
-      const lastMove = gameState.moves[gameState.moves.length - 1];
-      if (lastMove.from && lastMove.to) {
-        chessgroundRef.current.set({
-          lastMove: [lastMove.from, lastMove.to],
-        });
-      }
-    }
-  }, [gameState, isPlayerTurn, playerColor]);
-
-  // Get valid moves for current position
-  const getValidMoves = () => {
-    const game = gameRef.current;
-    const dests = new Map();
-    
-    const moves = game.moves({ verbose: true });
-    
-    for (const move of moves) {
-      if (!dests.has(move.from)) {
-        dests.set(move.from, []);
-      }
-      dests.get(move.from).push(move.to);
-    }
-    
-    return dests;
-  };
-
-  // Handle square selection (for click-to-move)
+  // Handle square clicks
   const handleSquareSelect = (square) => {
-    if (!isPlayerTurn) return;
+    console.log('Square selected:', square, { 
+      playerCanMove: isActuallyPlayerTurn(),
+      awaitingServer: awaitingServerResponse 
+    });
+    
+    if (!isActuallyPlayerTurn()) return;
 
-    const game = gameRef.current;
-    const piece = game.get(square);
+    const piece = gameRef.current.get(square);
+    const currentPlayerColor = playerColor === 'white' ? 'w' : 'b';
 
     if (selectedSquare && selectedSquare !== square) {
-      // Try to make a move
-      const moveAttempt = tryMove(selectedSquare, square);
-      if (moveAttempt) {
+      // Attempt move
+      if (attemptMove(selectedSquare, square)) {
         setSelectedSquare(null);
         return;
       }
     }
 
-    // Select new square if it has a piece of the current player
-    if (piece && piece.color === (playerColor === 'white' ? 'w' : 'b')) {
+    // Select piece if it belongs to current player
+    if (piece && piece.color === currentPlayerColor) {
       setSelectedSquare(square);
       
-      // Highlight possible moves
-      const moves = game.moves({ square, verbose: true });
+      // Show only moves for this piece
+      const moves = gameRef.current.moves({ square, verbose: true });
       const destinations = moves.map(move => move.to);
       
       chessgroundRef.current.set({
         movable: {
+          color: playerColor,
           dests: new Map([[square, destinations]]),
         },
       });
@@ -172,130 +258,156 @@ const ChessBoard = ({
       setSelectedSquare(null);
       chessgroundRef.current.set({
         movable: {
-          dests: getValidMoves(),
+          color: isActuallyPlayerTurn() ? playerColor : undefined,
+          dests: getAllLegalMoves(),
         },
       });
     }
   };
 
-  // Handle move via drag and drop
-  const handleMove = (orig, dest) => {
-    tryMove(orig, dest);
+  // Handle drag moves
+  const handleMove = (from, to) => {
+    console.log('Drag move:', { 
+      from, 
+      to, 
+      playerCanMove: isActuallyPlayerTurn(),
+      awaitingServer: awaitingServerResponse
+    });
+    
+    if (isActuallyPlayerTurn()) {
+      attemptMove(from, to);
+    }
   };
 
-  // Try to make a move
-  const tryMove = (from, to) => {
-    if (!isPlayerTurn) return false;
-
-    const game = gameRef.current;
-    
-    // Check if this is a pawn promotion
-    const piece = game.get(from);
-    const toRank = parseInt(to[1]);
-    
-    if (piece?.type === 'p' && (toRank === 8 || toRank === 1)) {
-      // Show promotion dialog
-      setPromotionMove({ from, to });
-      setShowPromotionDialog(true);
+  // Attempt to make a move
+  const attemptMove = (from, to) => {
+    if (!isActuallyPlayerTurn()) {
+      console.log('Move rejected: not player turn or awaiting server');
       return false;
     }
 
-    return makeMove(from, to);
-  };
-
-  // Make the actual move
-  const makeMove = (from, to, promotion = 'q') => {
-    const game = gameRef.current;
+    // Use Chess.js to validate the move
+    const testGame = new Chess(gameRef.current.fen());
     
     try {
-      const move = game.move({
+      // Test the move first
+      const testMove = testGame.move({ from, to, promotion: 'q' });
+      if (!testMove) {
+        console.log('Invalid move according to Chess.js');
+        return false;
+      }
+      
+      // Check if it's a promotion move
+      const piece = gameRef.current.get(from);
+      const toRank = parseInt(to[1]);
+      
+      if (piece?.type === 'p' && (toRank === 8 || toRank === 1)) {
+        setPromotionMove({ from, to });
+        setShowPromotionDialog(true);
+        return true;
+      }
+
+      return executeMove(from, to);
+      
+    } catch (error) {
+      console.log('Move validation failed:', error);
+      return false;
+    }
+  };
+
+  // Execute the move after validation
+  const executeMove = (from, to, promotion = 'q') => {
+    try {
+      const move = gameRef.current.move({
         from,
         to,
         promotion: promotion.toLowerCase(),
       });
 
       if (move) {
+        console.log('Move executed:', move.san);
+        
+        // Mark that we're waiting for server confirmation
+        setAwaitingServerResponse(true);
+        
+        // Update our tracking
+        lastSyncedFenRef.current = gameRef.current.fen();
+        
         // Play sound
         if (enableSounds) {
           playMoveSound(move);
         }
 
-        // Update Chessground
+        // Immediately update Chessground with new position
         chessgroundRef.current.set({
-          fen: game.fen(),
-          turnColor: game.turn() === 'w' ? 'white' : 'black',
-          check: game.inCheck(),
+          fen: gameRef.current.fen(),
+          turnColor: gameRef.current.turn() === 'w' ? 'white' : 'black',
+          check: gameRef.current.inCheck(),
           lastMove: [from, to],
           movable: {
-            color: undefined, // Disable moves until next turn
+            color: undefined, // Disable until server confirms
             dests: new Map(),
           },
         });
 
-        // Notify parent component
+        // Notify parent
         onMoveMade?.(move.san);
 
-        // Check for game end
-        if (game.isGameOver()) {
+        // Check game end
+        if (gameRef.current.isGameOver()) {
           setTimeout(() => {
             let reason = 'draw';
-            if (game.isCheckmate()) reason = 'checkmate';
-            else if (game.isStalemate()) reason = 'stalemate';
-            else if (game.isInsufficientMaterial()) reason = 'insufficient_material';
-            else if (game.isThreefoldRepetition()) reason = 'repetition';
+            if (gameRef.current.isCheckmate()) reason = 'checkmate';
+            else if (gameRef.current.isStalemate()) reason = 'stalemate';
+            else if (gameRef.current.isInsufficientMaterial()) reason = 'insufficient_material';
+            else if (gameRef.current.isThreefoldRepetition()) reason = 'repetition';
             
             onGameEnd?.(reason);
-          }, 500);
+          }, 300);
         }
 
         return true;
       }
     } catch (error) {
-      console.error("Invalid move:", error);
+      console.error("Move execution failed:", error);
+      // Reset board on failure
+      updateChessground();
     }
 
     return false;
   };
 
-  // Play move sound
+  // Simple move sound
   const playMoveSound = (move) => {
     if (!enableSounds) return;
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    if (move.captured) {
-      oscillator.frequency.value = 400;
-      gainNode.gain.value = 0.15;
-    } else if (move.san.includes('+')) {
-      oscillator.frequency.value = 1000;
-      gainNode.gain.value = 0.2;
-    } else if (move.san.includes('O-O')) {
-      oscillator.frequency.value = 600;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = move.captured ? 400 : 800;
       gainNode.gain.value = 0.1;
-    } else {
-      oscillator.frequency.value = 800;
-      gainNode.gain.value = 0.1;
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.08);
+    } catch (error) {
+      // Ignore audio errors
     }
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.1);
   };
 
-  // Handle promotion selection
+  // Handle promotion
   const handlePromotion = (piece) => {
     if (promotionMove) {
-      makeMove(promotionMove.from, promotionMove.to, piece);
+      executeMove(promotionMove.from, promotionMove.to, piece);
       setPromotionMove(null);
       setShowPromotionDialog(false);
     }
   };
 
-  // Get piece symbol for promotion dialog
   const getPieceSymbol = (piece) => {
     const symbols = {
       q: "♛", r: "♜", b: "♝", n: "♞",
@@ -306,11 +418,19 @@ const ChessBoard = ({
 
   return (
     <div className="flex flex-col items-center gap-4 relative">
-      {/* Board Container */}
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-400 font-mono bg-gray-800 p-2 rounded">
+          Turn: {gameRef.current?.turn()} | Player: {playerColor} | 
+          Can Move: {isActuallyPlayerTurn() ? 'YES' : 'NO'} | 
+          Awaiting: {awaitingServerResponse ? 'YES' : 'NO'}
+        </div>
+      )}
+      
       <div className="relative">
         <div
           ref={boardRef}
-          className={`chessground-board rounded-lg shadow-2xl overflow-hidden`}
+          className="chessground-board rounded-lg shadow-2xl overflow-hidden"
           style={{
             width: 'min(80vw, 80vh, 640px)',
             height: 'min(80vw, 80vh, 640px)',
@@ -370,14 +490,12 @@ const ChessBoard = ({
         )}
       </div>
 
-      {/* CSS Styles */}
       <style jsx>{`
         .chessground-board {
           --cg-coord-color: rgba(255, 255, 255, 0.8);
           --cg-coord-font: 'Arial', sans-serif;
         }
         
-        /* Board themes */
         .chessground-board cg-board square.light {
           background-color: ${boardTheme === 'blue' ? '#dee3e6' : 
                             boardTheme === 'green' ? '#f0d9b5' : 
@@ -390,17 +508,8 @@ const ChessBoard = ({
                             boardTheme === 'brown' ? '#b58863' : '#b58863'};
         }
         
-        /* Highlight colors */
         .chessground-board cg-board square.move-dest {
           background: radial-gradient(circle, rgba(20, 85, 30, 0.5) 22%, transparent 22%);
-        }
-        
-        .chessground-board cg-board square.premove-dest {
-          background: radial-gradient(circle, rgba(20, 30, 85, 0.5) 22%, transparent 22%);
-        }
-        
-        .chessground-board cg-board square.oc.move-dest {
-          background: radial-gradient(circle, transparent 22%, rgba(20, 85, 30, 0.5) 22%);
         }
         
         .chessground-board cg-board square.last-move {
