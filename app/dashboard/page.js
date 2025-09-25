@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sword, Shield, Trophy, Crown, Users, Settings, BookOpen, LogOut, Menu, X, Clock, User, MessageCircle, Flag, Send, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
-import ChessBoard from '@/components/ChessBoard';
+import ChessBoard from '@/components/Chessboard';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
