@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Sword, Shield, Trophy, Crown, Users, Settings, BookOpen, LogOut, Menu, X, Clock, User, MessageCircle, Flag, Send, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
-import ChessBoard from '@/components/Chessboard';
+import ChessBoard from '@/components/ChessBoard';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
@@ -237,6 +237,7 @@ const Dashboard = () => {
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
   const [gameOverData, setGameOverData] = useState(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.email) return;
@@ -682,7 +683,7 @@ const Dashboard = () => {
             </motion.div>
           )}
 
-          {gameState.status === 'playing' && (
+          {gameState.status === "playing" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -691,11 +692,26 @@ const Dashboard = () => {
               {/* Game Controls Header */}
               <div className="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl border border-cyan-500/30 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-white">Game in Progress</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-white medievalsharp-bold">War Rages</h3>
+                  </div>
                   <div className="flex gap-2">
+                    {/* Mobile Info Toggle */}
+                    <button
+                      onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                      className="lg:hidden p-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/30 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => gameManager.offerDraw()}
-                      className="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded border border-yellow-500/30 text-sm"
+                      className="sm:hidden block px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded border border-yellow-500/30 text-sm"
+                    >
+                      Draw
+                    </button>
+                    <button
+                      onClick={() => gameManager.offerDraw()}
+                      className="sm:block hidden px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded border border-yellow-500/30 text-sm"
                     >
                       Offer Draw
                     </button>
@@ -710,7 +726,7 @@ const Dashboard = () => {
               </div>
 
               {/* Game Area */}
-              <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex flex-col lg:flex-row gap-6 relative">
                 {/* Chess Board */}
                 <div className="flex-1 flex justify-center">
                   <ChessBoard
@@ -721,11 +737,14 @@ const Dashboard = () => {
                     }}
                     playerColor={gameState.currentGame?.playerColor || 'white'}
                     isPlayerTurn={gameState.currentGame?.isYourTurn || false}
+                    boardTheme="blue"
+                    showCoordinates={true}
+                    enableSounds={true}
                   />
                 </div>
 
-                {/* Game Chat & Info */}
-                <div className="w-full lg:w-80 flex flex-col gap-4">
+                {/* Desktop Sidebar - Game Chat & Info */}
+                <div className="hidden lg:flex w-80 flex-col gap-4">
                   {/* Opponent Info */}
                   <div className="p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 backdrop-blur-sm">
                     <div className="flex items-center gap-3 mb-3">
@@ -747,7 +766,7 @@ const Dashboard = () => {
                   </div>
 
                   {/* Chat Box */}
-                  <div className="flex-1 hidden sm:flex flex-col p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 backdrop-blur-sm min-h-[300px]">
+                  <div className="flex-1 flex flex-col p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 backdrop-blur-sm min-h-[300px]">
                     <div className="flex-1 overflow-y-auto mb-4 space-y-2">
                       {gameState.messages.map((msg, i) => (
                         <div
@@ -789,6 +808,110 @@ const Dashboard = () => {
                     </form>
                   </div>
                 </div>
+
+                {/* Mobile Backdrop */}
+                <AnimatePresence>
+                  {isMobileSidebarOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                      className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* Mobile Sliding Sidebar */}
+                <AnimatePresence>
+                  {isMobileSidebarOpen && (
+                    <motion.div
+                      initial={{ x: '100%' }}
+                      animate={{ x: 0 }}
+                      exit={{ x: '100%' }}
+                      transition={{ type: "spring", bounce: 0.1 }}
+                      className="lg:hidden fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-slate-900/95 backdrop-blur-sm z-50 border-l border-cyan-500/30 flex flex-col"
+                    >
+                      {/* Mobile Sidebar Header */}
+                      <div className="p-4 border-b border-cyan-500/20 flex items-center justify-between">
+                        <h3 className="text-white font-bold">Game Info</h3>
+                        <button
+                          onClick={() => setIsMobileSidebarOpen(false)}
+                          className="p-2 text-cyan-400 hover:text-cyan-300"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Mobile Sidebar Content */}
+                      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                        {/* Opponent Info */}
+                        <div className="p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-white font-bold">{gameState.currentGame?.opponent?.username}</h3>
+                              <p className="text-sm text-cyan-400">
+                                Rating: {gameState.currentGame?.opponent?.rating}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="text-cyan-200">
+                              Time: {formatTime(gameState.timeRemaining[gameState.currentGame?.opponent?.color || 'black'])}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Chat Box */}
+                        <div className="flex-1 flex flex-col p-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-cyan-500/30 min-h-[300px]">
+                          <div className="flex-1 overflow-y-auto mb-4 space-y-2">
+                            {gameState.messages.map((msg, i) => (
+                              <div
+                                key={i}
+                                className={`p-2 rounded-lg ${
+                                  msg.from === userInfo?.userId
+                                    ? 'bg-cyan-500/20 ml-auto'
+                                    : 'bg-slate-700/50'
+                                } max-w-[80%]`}
+                              >
+                                <p className="text-xs text-cyan-400 mb-1">{msg.username}</p>
+                                <p className="text-sm text-white">{msg.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = e.target.message;
+                              if (input.value.trim()) {
+                                gameManager.sendMessage(input.value);
+                                input.value = '';
+                              }
+                            }}
+                            className="flex gap-2"
+                          >
+                            <input
+                              type="text"
+                              name="message"
+                              placeholder="Type a message..."
+                              className="flex-1 bg-slate-900/50 border border-cyan-500/30 rounded-lg px-3 py-2 text-white placeholder-cyan-200/50 focus:outline-none focus:border-cyan-400/50"
+                              maxLength={200}
+                            />
+                            <button
+                              type="submit"
+                              className="p-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/30"
+                            >
+                              <Send className="w-5 h-5" />
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
