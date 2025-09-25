@@ -50,7 +50,7 @@ Install dependencies for both frontend and backend:
 
 ```bash
 npm install
-cd server
+cd backend
 npm install
 ```
 
@@ -74,7 +74,7 @@ MONGODB_URI=your_mongodb_connection_uri
 Start the backend server:
 
 ```bash
-cd server
+cd backend
 npm run start
 ```
 
