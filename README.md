@@ -34,7 +34,7 @@ Pixel Chess is a web-based chess platform that supports online multiplayer match
 
 ### Prerequisites
 
-- Node.js (version 18 or higher recommended)
+- Node.js (version 20 or higher recommended)
 - MongoDB (local or cloud)
 
 ### Installation
@@ -75,7 +75,7 @@ Start the backend server:
 
 ```bash
 cd backend
-npm run start
+node src/index.js
 ```
 
 Start the frontend (Next.js):
@@ -138,7 +138,7 @@ See `backend/README.md` for a sample `ChessGameManager` class that connects to t
 
 ## Error Handling
 
-Common error cases to handle in your UI:
+Common error cases to handle in UI:
 
 - Authentication failures
 - Invalid moves
@@ -158,7 +158,7 @@ The backend sends time updates every second during active games.
 
 - `/app` – Next.js frontend
 - `/components` – React components (Chessboard, etc.)
-- `/server` – Express backend with Socket.IO
+- `/backend` – Express backend with Socket.IO
 - `/models` – Mongoose models
 - `/lib` – Utilities and database connection
 - `backend/README.md` – Backend event and API documentation
