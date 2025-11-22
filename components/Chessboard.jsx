@@ -8,7 +8,7 @@ const ChessBoard = ({
   gameState,
   onMoveMade,
   playerColor = "white",
-  isPlayerTurn = true, // We'll calculate this internally instead
+  isPlayerTurn = true,
   boardTheme = "blue",
   showCoordinates = true,
   enableSounds = true,
